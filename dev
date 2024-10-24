@@ -324,12 +324,16 @@ function __pw() {
 	esac
 }
 
+function __migrate() {
+	$DC run --rm -it api-migrate "$@"
+}
+
 function main() {
 	__set_docker_profiles
 	COMMAND="$1"
 
 	case $COMMAND in
-	tls|hosts|up|down|restart|db|verify-deps|pw)
+	tls|hosts|up|down|restart|db|verify-deps|pw|migrate)
 		# replace hyphen with underscores (cause they look prettier)
 		TORUN="__${COMMAND//-/_}"
 		;;

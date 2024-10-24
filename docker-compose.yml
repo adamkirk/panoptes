@@ -54,6 +54,18 @@ services:
       - "traefik.http.services.api.loadbalancer.server.port=${HEIMDALLR_HTTP_PORT}"
       - "traefik.http.routers.api.tls=true"
 
+  api-migrate:
+    profiles:
+      - manual
+    <<: *network
+    image: migrate/migrate:4
+    environment:
+      POSTGRES_URL: postgres://${HEIMDALLR_POSTGRES_MIGRATOR_USER}:${HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD}@postgres:5432/${HEIMDALLR_POSTGRES_DB}?search_path=${HEIMDALLR_POSTGRES_SCHEMA}&sslmode=disable
+    volumes:
+      - ${HEIMDALLR_MIGRATIONS_DIR}:/migrations
+      - ${HEIMDALLR_DB_SCRIPTS_DIR}:/scripts
+    entrypoint: /scripts/run.sh
+
 # --- databases --- #
   postgres:
     profiles:

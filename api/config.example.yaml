@@ -21,12 +21,6 @@ db:
       port: 5432
       database: "heimdallr"
       schema: "public"
-      
-      # the credentials for the migrations user
-      migrations:
-        table: "migrations"
-        password: "iampostgres"
-        user: "heimdallr-migrator"
 
   projected:
     driver: opensearch
