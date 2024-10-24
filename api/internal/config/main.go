@@ -3,16 +3,19 @@
 // unmarshalling the yaml to map[string]interface. access_log is one example
 package config
 
-type DbDriver string
+type EventStoreDbDriver string
+type ProjectionDbDriver string
 
-const DbDriverPostgres DbDriver = "postgres"
+const EventStoreDbDriverPostgres EventStoreDbDriver = "postgres"
+const ProjectionDbDriverOpensearch ProjectionDbDriver = "opensearch"
+const ProjectionDbDriverPostgres ProjectionDbDriver = "postgres"
 
-var availableDbDrivers = []DbDriver{
-	DbDriverPostgres,
+var availableEventStoreDbDrivers = []EventStoreDbDriver{
+	EventStoreDbDriverPostgres,
 }
 
-func (val DbDriver) IsKnown() bool {
-	for _, chosen := range availableDbDrivers {
+func (val EventStoreDbDriver) IsKnown() bool {
+	for _, chosen := range availableEventStoreDbDrivers {
 		if chosen == val {
 			return true
 		}
@@ -21,8 +24,31 @@ func (val DbDriver) IsKnown() bool {
 	return false
 }
 
-func (val DbDriver) IsPostgres() bool {
-	return val == DbDriverPostgres
+func (val EventStoreDbDriver) IsPostgres() bool {
+	return val == EventStoreDbDriverPostgres
+}
+
+var availableProjectionDbDrivers = []ProjectionDbDriver{
+	ProjectionDbDriverOpensearch,
+	ProjectionDbDriverPostgres,
+}
+
+func (val ProjectionDbDriver) IsKnown() bool {
+	for _, chosen := range availableProjectionDbDrivers {
+		if chosen == val {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (val ProjectionDbDriver) IsPostgres() bool {
+	return val == ProjectionDbDriverPostgres
+}
+
+func (val ProjectionDbDriver) IsOpensearch() bool {
+	return val == ProjectionDbDriverOpensearch
 }
 
 type ConfigLogging struct {
@@ -54,11 +80,20 @@ type ConfigDbPostgres struct {
 	ConnectionRetries  int    `mapstructure:"connection_retries"`
 }
 
-type ConfigDb struct {
-	Driver  DbDriver
+type ConfigDbEventStore struct {
+	Driver  EventStoreDbDriver
 	Postgres ConfigDbPostgres
 }
 
+type ConfigDbProjection struct {
+	Driver  ProjectionDbDriver
+	Postgres ConfigDbPostgres
+}
+
+type ConfigDb struct {
+	EventStore ConfigDbEventStore `mapstructure:"event_store"`
+	Projection ConfigDbProjection
+}
 
 type Config struct {
 	Logging        ConfigLogging
@@ -90,8 +125,12 @@ func (c *Config) ApiServerDebugErrorsEnabled() bool {
 	return c.Api.Server.DebugErrorsEnabled
 }
 
-func (c *Config) DbDriver() DbDriver {
-	return c.Db.Driver
+func (c *Config) EventStoreDbDriver() EventStoreDbDriver {
+	return c.Db.EventStore.Driver
+}
+
+func (c *Config) ProjectionDbDriver() ProjectionDbDriver {
+	return c.Db.Projection.Driver
 }
 
 func NewDefault() *Config {
@@ -111,14 +150,27 @@ func NewDefault() *Config {
 			},
 		},
 		Db: ConfigDb{
-			Driver: DbDriverPostgres,
-			Postgres: ConfigDbPostgres{
-				Host: "",
-				Password: "",
-				Port: 5432,
-				Database: "heimdallr",
-				Schema: "public",
-				ConnectionRetries: 3,
+			EventStore: ConfigDbEventStore{
+				Driver: EventStoreDbDriverPostgres,
+				Postgres: ConfigDbPostgres{
+					Host: "",
+					Password: "",
+					Port: 5432,
+					Database: "heimdallr",
+					Schema: "public",
+					ConnectionRetries: 3,
+				},
+			},
+			Projection: ConfigDbProjection{
+				Driver: ProjectionDbDriverPostgres,
+				Postgres: ConfigDbPostgres{
+					Host: "",
+					Password: "",
+					Port: 5432,
+					Database: "heimdallr",
+					Schema: "public",
+					ConnectionRetries: 3,
+				},
 			},
 		},
 	}

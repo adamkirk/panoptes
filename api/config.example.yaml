@@ -11,7 +11,7 @@ api:
       enabled: true
 
 db:
-  persistent:
+  event_store:
     driver: postgres
 
     postgres:
@@ -22,9 +22,10 @@ db:
       database: "heimdallr"
       schema: "public"
 
-  projected:
+  projection:
     driver: opensearch
 
+# Exemplary only, still toying with this, but helps me map it out
 metrics:
   - name: "Coding Time"
     slug: "coding-time"

@@ -66,13 +66,13 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 		),
 	}
 
-	if !cfg.DbDriver().IsKnown() {
-		slog.Error("Unknown db driver", "driver", string(appCfg.DbDriver()))
+	if !cfg.EventStoreDbDriver().IsKnown() {
+		slog.Error("Unknown persistent db driver", "driver", string(appCfg.EventStoreDbDriver()))
 		os.Exit(1)
 	}
 
 	// Register difference implementations based on configured driver
-	if cfg.DbDriver().IsPostgres() {
+	if cfg.EventStoreDbDriver().IsPostgres() {
 		opts = append(opts, []fx.Option{
 			// TODO: add dbs
 		}...)
