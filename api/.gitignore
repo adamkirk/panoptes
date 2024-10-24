@@ -1,0 +1,5 @@
+config.yaml
+
+# Test coverage report
+.coverage.html
+.coverage.out

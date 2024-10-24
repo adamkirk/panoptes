@@ -1,0 +1,9 @@
+tls:
+  domains:
+  certificates:
+
+    - certFile: /certs/heimdallr.test.cert
+      keyFile: /certs/heimdallr.test.key
+
+    - certFile: /certs/_.heimdallr.test.cert
+      keyFile: /certs/_.heimdallr.test.key

@@ -1,0 +1,353 @@
+#!/bin/bash -e
+
+ROOTDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SVCDIR=$ROOTDIR/svc
+
+DOCKER_PROFILES_FILE="$ROOTDIR/.dockerprofiles"
+DOCKER_PROFILES_EXAMPLE_FILE="$ROOTDIR/.dockerprofiles.example"
+
+MINICA_CERTS_DIR=$ROOTDIR/etc/tls/certs
+TRAEFIK_CERTS_DIR=$ROOTDIR/etc/traefik/tls/certs
+
+DC="docker compose -p heimdallr -f ./docker-compose.yml --env-file $ROOTDIR/.dockerenv"
+
+# See: https://www.shellhacks.com/bash-colors/
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NO_COLOUR='\033[0;0m'
+
+BOLD='\033[0;1m'
+
+OS_DARWIN=darwin
+OS_LINUX=linux
+
+function __os_name() {
+	uname -s | tr '[:upper:]' '[:lower:]'
+}
+
+function __os_arch() {
+	uname -m | tr '[:upper:]' '[:lower:]'
+}
+
+function __newln() {
+	echo ""
+}
+
+function __sepln() {
+	WRAP_WIDTH=`tput cols`
+	SEP=""
+
+	for (( c=1; c<=$WRAP_WIDTH; c++ ))
+	do 
+		SEP="$SEP-"
+	done
+
+	echo $SEP
+}
+
+function __errlns() {
+	for var in "$@"
+	do
+		echo -e "$RED$var$NO_COLOUR"
+	done
+}
+
+function __infolns() {
+	for var in "$@"
+	do
+		echo -e "$NO_COLOUR$var$NO_COLOUR"
+	done
+}
+
+function __successlns() {
+	for var in "$@"
+	do
+		echo -e "$GREEN$var$NO_COLOUR"
+	done
+}
+
+function __show_help() {
+	__infolns "./dev" \
+		"" \
+		"Helper script for working with the heimdallr app"
+	__sepln
+	__infolns "Commands"
+	__newln
+	__infolns "tls" \
+		"\ttrust" \
+		"\t\tTrusts the local CA used to generate the certificates for development." \
+		 "\t\tThis will require sudo access." \
+		"" \
+		"\t\tUsage: ./dev tls trust"
+	__sepln
+	__infolns "dc" \
+		"\tAn alias for running a docker compose command with all the right options."
+	
+}
+
+function __unknown_command() {
+	__errlns "Unknown command: $1"
+	__sepln
+	__show_help
+	exit 1
+}
+
+# I think this works, been a while since i've tested it on a linux machine.
+function __tls_trust_linux() {
+  # Chrome
+  __infolns "Checking SSL Tools..."
+
+  # Just in case they don't have it already.
+  sudo apt-get install -y libnss3-tools
+
+  __infolns "Installing Google Chrome Cert..."
+  mkdir -p $HOME/.pki/nssdb
+  certutil -d sql:$HOME/.pki/nssdb -A -t "P,," -n $MINICA_CERTS_DIR/minica.pem -i $MINICA_CERTS_DIR/minica.pem
+
+
+  # Everything Else (Except Firefox, Firefox is too strict for even this).
+  __infolns "Installing OS Cert..."
+  sudo cp $MINICA_CERTS_DIR/minica.pem /usr/local/share/ca-certificates/
+
+  __infolns "Refreshing Certificates..."
+  sudo update-ca-certificates
+  __successlns "Certificate installation complete!"
+}
+
+function __tls_trust_darwin() {
+  __infolns "Adding certificate to keychain..."
+  __infolns "You will need to enter your password, and may see a system prompt asking for an admin accounts credentials..."
+  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $MINICA_CERTS_DIR/minica.pem
+  __successlns "Certificate installation complete!";
+}
+
+function __tls_trust() {
+
+  OS=`__os_name`
+  case "$OS" in
+    linux)
+      __tls_trust_linux
+      ;;
+
+    $OS_DARWIN)
+      __tls_trust_darwin
+      ;;
+
+    *)
+      __errlns "Unsupported OS: $OS"
+      exit 1
+  esac
+}
+
+function __tls_setup() {
+	if [ ! -d $MINICA_CERTS_DIR ]; then
+		mkdir $MINICA_CERTS_DIR
+	fi
+
+	if [ ! -d "$MINICA_CERTS_DIR/heimdallr.test" ]; then
+		$DC run minica minica --domains 'heimdallr.test'
+	else
+		__infolns "Not generating heimdallr.test as it's already present!"
+	fi
+
+	if [ ! -d $MINICA_CERTS_DIR/_.heimdallr.test ]; then
+		$DC run minica minica --domains '*.heimdallr.test'
+	else
+		__infolns "Not generating *.heimdallr.test as it's already present!"
+	fi
+
+	rm -rf $TRAEFIK_CERTS_DIR/*
+	cp $MINICA_CERTS_DIR/_.heimdallr.test/cert.pem $TRAEFIK_CERTS_DIR/_.heimdallr.test.cert
+	cp $MINICA_CERTS_DIR/_.heimdallr.test/key.pem $TRAEFIK_CERTS_DIR/_.heimdallr.test.key
+	cp $MINICA_CERTS_DIR/heimdallr.test/cert.pem $TRAEFIK_CERTS_DIR/heimdallr.test.cert
+	cp $MINICA_CERTS_DIR/heimdallr.test/key.pem $TRAEFIK_CERTS_DIR/heimdallr.test.key
+}
+
+function __tls() {
+	COMMAND="$1"
+
+	case $COMMAND in
+		trust|setup)
+			__tls_$COMMAND "${@:2}"
+			;;
+		*)
+			__unknown_command "$COMMAND"
+			;;
+	esac
+}
+
+function __db_init() {
+	__dc exec postgres /docker-entrypoint-initdb.d/init.sh
+}
+
+function __db() {
+	COMMAND="$1"
+
+	case $COMMAND in
+		init)
+			__db_$COMMAND "${@:2}"
+			;;
+		*)
+			__unknown_command "$COMMAND"
+			;;
+	esac
+}
+
+function __dc() {
+  $DC "$@"
+}
+
+# TODO: find a way to pull all these hosts from traefik api
+# Very do-able but fiddly, especially with just bash
+function __hosts() {
+	echo "127.0.0.1 mailbox.heimdallr.test"
+	echo "127.0.0.1 mkdocs.heimdallr.test"
+	echo "127.0.0.1 grafana.heimdallr.test"
+	echo "127.0.0.1 loki.heimdallr.test"
+	echo "127.0.0.1 prometheus.heimdallr.test"
+	echo "127.0.0.1 heimdallr.test"
+}
+
+function __up() {
+	$DC up -d
+}
+
+function __down() {
+	$DC down --remove-orphans
+}
+
+function __restart() {
+	__down
+	__up
+}
+
+function __set_docker_profiles()
+{
+	if [ ! -f "$DOCKER_PROFILES_FILE" ]; then
+		touch $DOCKER_PROFILES_FILE
+	fi
+
+	if [ ! -f "$DOCKER_PROFILES_FILE" ]; then
+		cp $DOCKER_PROFILES_EXAMPLE_FILE $DOCKER_PROFILES_FILE
+	fi
+
+	while IFS="" read -r PROFILE || [ -n "$PROFILE" ]
+	do
+		if [ -z "$PROFILE" ]; then
+			# Skip empty lines
+			continue
+		fi
+
+		DC="$DC --profile $PROFILE"
+	done < $DOCKER_PROFILES_FILE
+}
+
+# Nasty, but it works...we should only really have a few, mostly things are in 
+# docker. Mainly this is for things like playwright where we wanna run the ui
+# on the host.
+function __verify_deps() {
+	EXIT_CODE=0
+
+	OS_NAME=`__os_name`
+
+	case $OS_NAME in
+	$OS_DARWIN|linux)
+		;;
+	*)
+		__errlns "OS '$OS_NAME' is not really supported, sorry you'll have to figure this out on your own!"
+		;;
+	esac
+
+	if ! command -v node > /dev/null; then
+		__errlns "You need to install node!"
+		__errlns "\tRecommended: https://github.com/nvm-sh/nvm"
+		if [ "$OS_NAME" == "$OS_DARWIN" ]; then
+			__errlns "\tOSX (brew): https://formulae.brew.sh/formula/nvm"
+		fi
+		__newln
+		EXIT_CODE=1
+	else 
+		NODE_VERSION="$(node -v)"
+		MAJOR_NODE_VERSION="$(echo ${NODE_VERSION/v/} | cut -d '.' -f 1)"
+		
+		if [ "$MAJOR_NODE_VERSION" -lt 23 ]; then 
+			__errlns "Upgrade node to >= 23"
+			EXIT_CODE=1
+		else 
+			__successlns "Node up-to-date!"
+		fi
+	fi
+
+	if ! command -v yarn > /dev/null; then
+		__errlns "You need to install yarn!"
+		__errlns "\tSee: https://yarnpkg.com/getting-started/install"
+		EXIT_CODE=1
+	else 
+		MAJOR_YARN_VERSION="$(yarn -v | cut -d '.' -f 1)"
+		MINOR_YARN_VERSION="$(yarn -v | cut -d '.' -f 2)"
+		
+		if [ "$MAJOR_YARN_VERSION" -lt 1 ] || [ "$MINOR_YARN_VERSION" -lt 22 ]; then 
+			__errlns "Upgrade yarn to >= 1.22"
+			EXIT_CODE=1
+		else 
+			__successlns "Yarn up-to-date!"
+		fi
+	fi
+
+	return $EXIT_CODE
+}
+
+
+function __pw() {
+	COMMAND=$1
+	case $COMMAND in
+	deps)
+		(
+			cd $ROOTDIR/test/playwright
+			yarn install
+		)
+		return "$?"
+		;;
+	browsers)
+		(
+			cd $ROOTDIR/test/playwright
+			yarn playwright install
+		)
+		return "$?"
+		;;
+	*)
+		(
+			cd $ROOTDIR/test/playwright "${@}"
+			yarn playwright test
+		)
+		;;
+	esac
+}
+
+function main() {
+	__set_docker_profiles
+	COMMAND="$1"
+
+	case $COMMAND in
+	tls|hosts|up|down|restart|db|verify-deps|pw)
+		# replace hyphen with underscores (cause they look prettier)
+		TORUN="__${COMMAND//-/_}"
+		;;
+	dc|exec)
+		__$COMMAND "${@:2}"
+		return "$?"
+		;;
+	show-dc)
+		echo $DC
+		;;
+	*)
+		__unknown_command "$COMMAND"
+		;;
+	esac
+
+	$TORUN "${@:2}"
+
+	exit "$?"
+}
+
+main "$@"

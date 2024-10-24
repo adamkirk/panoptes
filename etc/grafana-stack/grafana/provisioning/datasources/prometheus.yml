@@ -1,0 +1,11 @@
+# # config file version
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://$GF_PROMETHEUS_HOST:$GF_PROMETHEUS_HTTP_PORT
+    version: 1
+    editable: false
+    isDefault: false

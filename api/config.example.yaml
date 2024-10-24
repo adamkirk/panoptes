@@ -1,0 +1,11 @@
+logging:
+  level: debug
+  format: json
+
+api:
+  server:
+    debug_errors_enabled: false
+    port: 8080
+    access_log:
+      format: json
+      enabled: true

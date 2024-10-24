@@ -1,0 +1,55 @@
+site_name: heimdallr
+repo_url: https://github.com/adamkirk/heimdallr
+repo_name: adamkirk/heimdallr@github
+docs_dir: ./docs
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.indexes
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: grey
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/lightbulb
+        name: Switch to light mode
+markdown_extensions:
+  - admonition
+  - meta
+  - footnotes
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      auto_title: true
+      linenums: true
+      linenums_style: pymdownx-inline
+      anchor_linenums: true
+      # This is so that php blocks don't need to start with '<?' syntax
+      # highlighting to kick in.
+      extend_pygments_lang:
+        - name: php
+          lang: php
+          options:
+            startinline: true
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - monorepo
+
+nav:
+  - 'index.md'
+  - Venues: '!include ./svc/venues/mkdocs.yml'
+
