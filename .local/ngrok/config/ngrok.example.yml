@@ -1,0 +1,12 @@
+version: 3
+
+agent:
+  # Add your token here
+  authtoken: ***
+
+tunnels:
+  basic:
+    proto: http
+    # Enter a value here for a static domain
+    domain: duckling-cosmic-martin.ngrok-free.app
+    addr: api:8080

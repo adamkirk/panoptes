@@ -1,20 +1,11 @@
 version: "3.4"
 
-networks:
-  heimdallr-dev:
-
-x-network:
-  &network
-  networks:
-    - heimdallr-dev
-
 volumes:
   postgres:
 
 services:
 # --- ingress --- #
   traefik:
-    <<: *network
     image: "traefik:v2.9.1"
     ports:
       # The HTTP port
@@ -29,11 +20,25 @@ services:
     labels:
       - "prometheus.port=8082"
 
+  ngrok:
+    profiles:
+      - ngrok
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    command:
+      - "start"
+      - "--all"
+      - "--config"
+      - "/etc/ngrok.yml"
+    volumes:
+      - ${HEIMDALLR_NGROK_CONFIG_FILE_PATH}:/etc/ngrok.yml
+    ports:
+      - 4040:4040
+
 # --- app --- #
   api:
     profiles:
       - api
-    <<: *network
     build:
       context: .
       target: dev
@@ -57,7 +62,6 @@ services:
   api-migrate:
     profiles:
       - manual
-    <<: *network
     image: migrate/migrate:4
     environment:
       POSTGRES_URL: postgres://${HEIMDALLR_POSTGRES_MIGRATOR_USER}:${HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD}@postgres:5432/${HEIMDALLR_POSTGRES_DB}?search_path=${HEIMDALLR_POSTGRES_SCHEMA}&sslmode=disable
@@ -70,7 +74,6 @@ services:
   postgres:
     profiles:
       - api
-    <<: *network
     image: postgres:17.0
     ports:
       - "${HEIMDALLR_POSTGRES_HOST_PORT}:5432"
@@ -90,7 +93,6 @@ services:
 
 # --- mail --- #
   mailbox:
-    <<: *network
     image: maildev/maildev:latest
     restart: always
     command:
@@ -110,14 +112,9 @@ services:
       - "traefik.http.routers.mailbox.entrypoints=websecure"
       - "traefik.http.services.mailbox.loadbalancer.server.port=${HEIMDALLR_MAILBOX_HTTP_PORT}"
       - "traefik.http.routers.mailbox.tls=true"
-    networks:
-      heimdallr-dev:
-        aliases:
-          - ${HEIMDALLR_MAILBOX_INTERNAL_HOST}
 
 # --- docs --- #
   mkdocs:
-    <<: *network
     build:
       context: ${HEIMDALLR_ETC_MKDOCS}
     # image: squidfunk/mkdocs-material:latest
@@ -135,7 +132,6 @@ services:
 
 # --- monitoring --- #
   grafana:
-    <<: *network
     profiles:
       - grafana-stack-enabled
     build:
@@ -168,7 +164,6 @@ services:
       - "traefik.http.routers.grafana.tls=true"
 
   loki:
-    <<: *network
     profiles:
       - grafana-stack-enabled
     image: grafana/loki:2.9.2
@@ -190,7 +185,6 @@ services:
   promtail:
     profiles:
       - grafana-stack-enabled
-    <<: *network
     image: grafana/promtail:2.9.2
     environment:
       PROMTAIL_HTTP_PORT: ${HEIMDALLR_PROMTAIL_HTTP_PORT}
@@ -210,7 +204,6 @@ services:
   prometheus:
     profiles:
       - grafana-stack-enabled
-    <<: *network
     image: prom/prometheus:v2.50.1
     # So it can access the docker socket...
     # Not ideal, but this is only dev.
@@ -228,7 +221,6 @@ services:
 
 # --- tls --- #
   minica: 
-    <<: *network
     profiles: 
       - manual
     build:

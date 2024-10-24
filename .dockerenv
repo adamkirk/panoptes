@@ -1,6 +1,9 @@
 # STORAGE
 HEIMDALLR_STORAGE_DIR=./etc/storage
 
+# Ngrok
+HEIMDALLR_NGROK_CONFIG_FILE_PATH=./.local/ngrok/config/ngrok.yml
+
 # TLS
 HEIMDALLR_MINICA_CERTS_DIR=./etc/tls/certs
 HEIMDALLR_ETC_TRAEFIK_DIR=./etc/traefik
