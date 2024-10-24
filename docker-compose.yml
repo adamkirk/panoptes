@@ -8,17 +8,11 @@ x-network:
   networks:
     - heimdallr-dev
 
-services:
-  minica: 
-    <<: *network
-    profiles: 
-      - manual
-    build:
-      context: ./etc/tls/minica
-    working_dir: /srv
-    volumes:
-      - "${HEIMDALLR_MINICA_CERTS_DIR}:/srv"
+volumes:
+  postgres:
 
+services:
+# --- ingress --- #
   traefik:
     <<: *network
     image: "traefik:v2.9.1"
@@ -35,6 +29,54 @@ services:
     labels:
       - "prometheus.port=8082"
 
+# --- app --- #
+  api:
+    profiles:
+      - api
+    <<: *network
+    build:
+      context: .
+      target: dev
+    environment:
+      APP_COMMAND: heimdallr
+      AIR_DEBUG: ${HEIMDALLR_AIR_DEBUG}
+      # See: https://github.com/testcontainers/testcontainers-go/issues/2477#issuecomment-2417815745
+      TESTCONTAINERS_RYUK_DISABLED: true
+    working_dir: /app
+    volumes:
+      - "${HEIMDALLR_DIR}/:/app"
+      # So we can use testcontainers
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.http.routers.api.rule=Host(`${HEIMDALLR_HOST}`)"
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.services.api.loadbalancer.server.port=${HEIMDALLR_HTTP_PORT}"
+      - "traefik.http.routers.api.tls=true"
+
+# --- databases --- #
+  postgres:
+    profiles:
+      - api
+    <<: *network
+    image: postgres:17.0
+    ports:
+      - "${HEIMDALLR_POSTGRES_HOST_PORT}:5432"
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASSWORD: ${HEIMDALLR_POSTGRES_ROOT_PASSWORD}
+      POSTGRES_USER: ${HEIMDALLR_POSTGRES_ROOT_USER}
+      POSTGRES_DB: ${HEIMDALLR_POSTGRES_DB}
+      HEIMDALLR_POSTGRES_SCHEMA: ${HEIMDALLR_POSTGRES_SCHEMA}
+      HEIMDALLR_POSTGRES_APP_USER: ${HEIMDALLR_POSTGRES_APP_USER}
+      HEIMDALLR_POSTGRES_APP_PASSWORD: ${HEIMDALLR_POSTGRES_APP_PASSWORD}
+      HEIMDALLR_POSTGRES_MIGRATOR_USER: ${HEIMDALLR_POSTGRES_MIGRATOR_USER}
+      HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD: ${HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ${HEIMDALLR_POSTGRES_INIT_DIR}:/docker-entrypoint-initdb.d
+
+# --- mail --- #
   mailbox:
     <<: *network
     image: maildev/maildev:latest
@@ -61,6 +103,7 @@ services:
         aliases:
           - ${HEIMDALLR_MAILBOX_INTERNAL_HOST}
 
+# --- docs --- #
   mkdocs:
     <<: *network
     build:
@@ -78,6 +121,7 @@ services:
     volumes:
       - .:/app
 
+# --- monitoring --- #
   grafana:
     <<: *network
     profiles:
@@ -170,27 +214,13 @@ services:
       - "traefik.http.services.prometheus.loadbalancer.server.port=${HEIMDALLR_PROMETHEUS_HTTP_PORT}"
       - "traefik.http.routers.prometheus.tls=true"
 
-  api:
-    profiles:
-      - api
+# --- tls --- #
+  minica: 
     <<: *network
+    profiles: 
+      - manual
     build:
-      context: .
-      target: dev
-    environment:
-      APP_COMMAND: heimdallr
-      AIR_DEBUG: ${HEIMDALLR_AIR_DEBUG}
-      # See: https://github.com/testcontainers/testcontainers-go/issues/2477#issuecomment-2417815745
-      TESTCONTAINERS_RYUK_DISABLED: true
-    working_dir: /app
+      context: ./etc/tls/minica
+    working_dir: /srv
     volumes:
-      - "${HEIMDALLR_DIR}/:/app"
-      # So we can use testcontainers
-      - /var/run/docker.sock:/var/run/docker.sock
-    labels:
-      - "traefik.http.routers.api.rule=Host(`${HEIMDALLR_HOST}`)"
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.services.api.loadbalancer.server.port=${HEIMDALLR_HTTP_PORT}"
-      - "traefik.http.routers.api.tls=true"
-
+      - "${HEIMDALLR_MINICA_CERTS_DIR}:/srv"

@@ -9,3 +9,59 @@ api:
     access_log:
       format: json
       enabled: true
+
+db:
+  persistent:
+    driver: postgres
+
+    postgres:
+      host: "postgres"
+      password: "iampostgres"
+      user: "heimdallr-app"
+      port: 5432
+      database: "heimdallr"
+      schema: "public"
+      
+      # the credentials for the migrations user
+      migrations:
+        table: "migrations"
+        password: "iampostgres"
+        user: "heimdallr-migrator"
+
+  projected:
+    driver: opensearch
+
+metrics:
+  - name: "Coding Time"
+    slug: "coding-time"
+    description: |
+      The time the developer spent coding the changes.
+    stream: task
+    countWhile:
+      - allOf:
+        - anyOf:
+          - change_request:
+              is_draft: true
+          - change_request:
+              does_not_exist: true
+        - task:
+            status: ["in progress"]
+
+  - name: "Review Time"
+    slug: "review-time"
+    stream: task
+    description: |
+      The time that it took to review the changes.
+    startOn:
+      - vcs:
+          comment_added:
+    stopOnLast:
+      - change_request:
+          approved:
+      - change_request:
+          merged:
+      - change_request:
+          closed:
+      - task:
+          status_changed:
+            from: ["awaiting review"]
