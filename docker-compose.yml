@@ -91,6 +91,28 @@ services:
       - postgres:/var/lib/postgresql/data
       - ${HEIMDALLR_POSTGRES_INIT_DIR}:/docker-entrypoint-initdb.d
 
+  pgadmin:
+    # Latest tag is a bit naff, check occasionally for newer versions...
+    image: dpage/pgadmin4:8.12
+    profiles:
+      - api
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${HEIMDALLR_PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${HEIMDALLR_PGADMIN_PASSWORD}
+      # Disable login and security precautions; useful in dev
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY: 'False'
+      PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS: "['test']"
+    volumes:
+      - "${HEIMDALLR_PGADMIN_SERVERS_FILEPATH}:/pgadmin4/servers.json"
+    labels:
+      - "traefik.http.routers.pgadmin.rule=Host(`${HEIMDALLR_PGADMIN_HOST}`)"
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.entrypoints=websecure"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=${HEIMDALLR_PGADMIN_PORT}"
+      - "traefik.http.routers.pgadmin.tls=true"
+
 # --- mail --- #
   mailbox:
     image: maildev/maildev:latest

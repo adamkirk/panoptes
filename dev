@@ -206,6 +206,7 @@ function __hosts() {
 	echo "127.0.0.1 loki.heimdallr.test"
 	echo "127.0.0.1 prometheus.heimdallr.test"
 	echo "127.0.0.1 heimdallr.test"
+	echo "127.0.0.1 pgadmin.heimdallr.test"
 }
 
 function __up() {
