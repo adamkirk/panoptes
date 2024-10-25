@@ -64,6 +64,13 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 				fx.ResultTags(`group:"api.v1.controllers"`),
 			),
 		),
+		fx.Provide(
+			fx.Annotate(
+				v1.NewIngestController,
+				fx.As(new(api.Controller)),
+				fx.ResultTags(`group:"api.v1.controllers"`),
+			),
+		),
 	}
 
 	if !cfg.EventStoreDbDriver().IsKnown() {

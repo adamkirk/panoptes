@@ -81,12 +81,6 @@ func ConfigureDefaultResponses(api *huma.OpenAPI, op *huma.Operation) {
 		validationStatus = strconv.Itoa(http.StatusBadRequest)
 	}
 
-	if _, ok := op.Responses["default"]; ok {
-		// Remove the default as it's an error, but has no status code
-		// Maybe there's another way to turn it off
-		op.Responses["default"] = nil
-	}
-
 	if _, ok := op.Responses[validationStatus]; !ok {
 		op.Responses[validationStatus] = &huma.Response{
 			Description: "validation error",
@@ -104,7 +98,7 @@ func ConfigureDefaultResponses(api *huma.OpenAPI, op *huma.Operation) {
 
 	if _, ok := op.Responses[internalError]; !ok {
 		op.Responses[internalError] = &huma.Response{
-			Description: "validation error",
+			Description: "Internal server error",
 			Content: map[string]*huma.MediaType{
 				"application/problem+json": {
 					Schema: &huma.Schema{
@@ -151,20 +145,19 @@ func NewServer(v1Api *V1Api, cfg ApiServerConfig) *Server {
 		e.Use(buildLoggingMiddleware(cfg.ApiServerAccessLogFormat()))
 	}
 	
+	apiBase := fmt.Sprintf("/api/%s", v1Api.Version())
+	api := e.Group(apiBase)
+	apiCfg := huma.DefaultConfig("Heimdallr", v1Api.Version())
+	hg := humaecho.NewWithGroup(e, api, apiCfg)
+	hg.OpenAPI().OnAddOperation = append(hg.OpenAPI().OnAddOperation, ConfigureDefaultResponses)
+	// Needed to get the docs displaying properly.
+	apiCfg.OpenAPI.Servers = []*huma.Server{
+		{
+			URL: apiBase,
+		},
+	}
+
 	for _, c := range v1Api.Controllers() {
-		apiBase := fmt.Sprintf("/api/%s", v1Api.Version())
-		api := e.Group(apiBase)
-		cfg := huma.DefaultConfig("Organisations", v1Api.Version())
-
-		// Needed to get the docs displaying properly.
-		cfg.OpenAPI.Servers = []*huma.Server{
-			{
-				URL: apiBase,
-			},
-		}
-
-		hg := humaecho.NewWithGroup(e, api, cfg)
-		hg.OpenAPI().OnAddOperation = append(hg.OpenAPI().OnAddOperation, ConfigureDefaultResponses)
 		c.RegisterRoutes(hg)
 	}
 
