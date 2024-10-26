@@ -72,12 +72,41 @@ type ConfigApi struct {
 }
 
 type ConfigDbPostgres struct {
+	User string
 	Host string
 	Password string
 	Port uint32
 	Database           string
 	Schema string
 	ConnectionRetries  int    `mapstructure:"connection_retries"`
+}
+
+func (cfg ConfigDbPostgres) DBHost() string {
+	return cfg.Host
+}
+
+func (cfg ConfigDbPostgres) DBUser() string {
+	return cfg.User
+}
+
+func (cfg ConfigDbPostgres) DBPassword() string {
+	return cfg.Password
+}
+
+func (cfg ConfigDbPostgres) DBPort() uint32 {
+	return cfg.Port
+}
+
+func (cfg ConfigDbPostgres) DBSchema() string {
+	return cfg.Schema
+}
+
+func (cfg ConfigDbPostgres) DBName() string {
+	return cfg.Database
+}
+
+func (cfg ConfigDbPostgres) DBConnectionRetries() int {
+	return cfg.ConnectionRetries
 }
 
 type ConfigDbEventStore struct {
@@ -153,6 +182,7 @@ func NewDefault() *Config {
 			EventStore: ConfigDbEventStore{
 				Driver: EventStoreDbDriverPostgres,
 				Postgres: ConfigDbPostgres{
+					User: "",
 					Host: "",
 					Password: "",
 					Port: 5432,
@@ -164,6 +194,7 @@ func NewDefault() *Config {
 			Projection: ConfigDbProjection{
 				Driver: ProjectionDbDriverPostgres,
 				Postgres: ConfigDbPostgres{
+					User: "",
 					Host: "",
 					Password: "",
 					Port: 5432,

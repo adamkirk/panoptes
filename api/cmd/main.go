@@ -10,6 +10,8 @@ import (
 	"github.com/adamkirk/heimdallr/internal/api"
 	v1 "github.com/adamkirk/heimdallr/internal/api/v1"
 	"github.com/adamkirk/heimdallr/internal/config"
+	"github.com/adamkirk/heimdallr/internal/domain/ingestion"
+	"github.com/adamkirk/heimdallr/internal/repository/postgres"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -71,6 +73,13 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 				fx.ResultTags(`group:"api.v1.controllers"`),
 			),
 		),
+
+		fx.Provide(
+			fx.Annotate(
+				ingestion.NewGithubIngestor,
+				fx.As(new(v1.GithubIngestor)),
+			),
+		),
 	}
 
 	if !cfg.EventStoreDbDriver().IsKnown() {
@@ -81,7 +90,17 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 	// Register difference implementations based on configured driver
 	if cfg.EventStoreDbDriver().IsPostgres() {
 		opts = append(opts, []fx.Option{
-			// TODO: add dbs
+			fx.Provide(
+				func (cfg *config.Config) *postgres.Connector {
+					return postgres.NewConnector(cfg.Db.EventStore.Postgres)
+				},
+			),
+			fx.Provide(
+				fx.Annotate(
+					postgres.NewGithubWebhooksRepository,
+					fx.As(new(ingestion.GithubIngestorRepo)),
+				),
+			),
 		}...)
 	}
 	return opts

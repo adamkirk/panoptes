@@ -329,12 +329,16 @@ function __migrate() {
 	$DC run --rm -it api-migrate "$@"
 }
 
+function __jet() {
+	$DC run --rm -it jet "$@"
+}
+
 function main() {
 	__set_docker_profiles
 	COMMAND="$1"
 
 	case $COMMAND in
-	tls|hosts|up|down|restart|db|verify-deps|pw|migrate)
+	tls|hosts|up|down|restart|db|verify-deps|pw|migrate|jet)
 		# replace hyphen with underscores (cause they look prettier)
 		TORUN="__${COMMAND//-/_}"
 		;;

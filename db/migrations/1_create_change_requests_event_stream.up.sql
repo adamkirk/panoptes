@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS "change_requests_stream"(
    "id" UUID PRIMARY KEY,
    "aggregate_id" TEXT NOT NULL,
    "occurred_at" TIMESTAMP (6) WITH TIME ZONE,
-   "payload" TEXT NOT NULL,
+   "payload" JSON NOT NULL,
    "type" TEXT,
    "source_id" UUID DEFAULT NULL,
    "source_integration" TEXT NOT NULL
@@ -12,7 +12,7 @@ COMMENT ON COLUMN "change_requests_stream"."aggregate_id" IS 'The id of the "agg
 This will be the ID of the change request from the source system. E.g. 1234 for github PR.';
 COMMENT ON COLUMN "change_requests_stream"."occurred_at" IS 'Used for the projection, this controls where it sits in the timeline.';
 COMMENT ON COLUMN "change_requests_stream"."payload" IS 'The actual payload for the event.
-TEXT rather than a JSON type because we don''t wanna interact with it at a db level, thats what the projection and read side are for';
+JSON should be fine, we don''t need to parse it in the DB.';
 COMMENT ON COLUMN "change_requests_stream"."type" IS 'The type of event that occurred.';
 COMMENT ON COLUMN "change_requests_stream"."source_id" IS 'The source id of the webhook that produced this event (if applicable).';
 COMMENT ON COLUMN "change_requests_stream"."source_integration" IS 'The source integration name this will be something like ''github'', ''gitlab'', ''bitbucket'' etc

@@ -47,6 +47,13 @@ services:
       AIR_DEBUG: ${HEIMDALLR_AIR_DEBUG}
       # See: https://github.com/testcontainers/testcontainers-go/issues/2477#issuecomment-2417815745
       TESTCONTAINERS_RYUK_DISABLED: true
+
+      HEIMDALLR_DB_EVENT_STORE_POSTGRES_HOST: postgres
+      HEIMDALLR_DB_EVENT_STORE_POSTGRES_DATABASE: ${HEIMDALLR_POSTGRES_DB}
+      HEIMDALLR_DB_EVENT_STORE_POSTGRES_USER: ${HEIMDALLR_POSTGRES_APP_USER}
+      HEIMDALLR_DB_EVENT_STORE_POSTGRES_PASSWORD: ${HEIMDALLR_POSTGRES_APP_PASSWORD}
+      HEIMDALLR_DB_EVENT_STORE_POSTGRES_PORT: ${HEIMDALLR_POSTGRES_HOST_PORT}
+      HEIMDALLR_DB_EVENT_STORE_POSTGRES_SCHEMA: ${HEIMDALLR_POSTGRES_SCHEMA}
     working_dir: /app
     volumes:
       - "${HEIMDALLR_DIR}/:/app"
@@ -69,6 +76,20 @@ services:
       - ${HEIMDALLR_MIGRATIONS_DIR}:/migrations
       - ${HEIMDALLR_DB_SCRIPTS_DIR}:/scripts
     entrypoint: /scripts/run.sh
+
+  jet:
+    profiles:
+      - manual
+    build:
+      context: ${HEIMDALLR_JET_BUILD_CTX}
+    working_dir: /app
+    environment:
+      POSTGRES_DSN: postgres://${HEIMDALLR_POSTGRES_ROOT_USER}:${HEIMDALLR_POSTGRES_ROOT_PASSWORD}@postgres:5432/${HEIMDALLR_POSTGRES_DB}?search_path=${HEIMDALLR_POSTGRES_SCHEMA}&sslmode=disable
+    volumes:
+      - "${HEIMDALLR_DIR}/:/app"
+    command:
+      - -schema=public
+      - -path=./internal/repository/postgres/schema
 
 # --- databases --- #
   postgres:

@@ -2,13 +2,17 @@ package v1
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 
 	"github.com/adamkirk/heimdallr/internal/api/operations"
 	"github.com/adamkirk/heimdallr/internal/api/v1/responses"
+	"github.com/adamkirk/heimdallr/internal/domain/ingestion"
 	"github.com/danielgtaylor/huma/v2"
 )
+
+type GithubIngestor interface {
+	Process(e ingestion.GithubEvent) error
+}
 
 type GithubWebhookRequest struct {
 	GithubEvent string `header:"X-GitHub-Event" required:"true"`
@@ -16,7 +20,9 @@ type GithubWebhookRequest struct {
 	Body map[string]any `doc:"Any webhook structure that github may send"`
 }
 
-type IngestionController struct {}
+type IngestionController struct {
+	github GithubIngestor
+}
 
 func (c *IngestionController) RegisterRoutes(api huma.API) {
 	huma.Register[GithubWebhookRequest, responses.NoContent](api, huma.Operation{
@@ -31,14 +37,23 @@ func (c *IngestionController) RegisterRoutes(api huma.API) {
 	}, ErrorHandler(true, c.IngestGithubWebhook))
 }
 
-func NewIngestController(
-) *IngestionController {
-	return &IngestionController{}
+func NewIngestController(gh GithubIngestor) *IngestionController {
+	return &IngestionController{
+		github: gh,
+	}
 }
 
 func (c *IngestionController) IngestGithubWebhook(ctx context.Context, req *GithubWebhookRequest) (*responses.NoContent, error) {
+	e := ingestion.GithubEvent{
+		Payload: req.Body,
+		DeliveryID: req.GithubDelivery,
+		Event: req.GithubEvent,
+	}
 
-	slog.Debug("github event ingested", "request", req)
+	if err := c.github.Process(e); err != nil {
+		return nil, err
+	}
+
 	return &responses.NoContent{
 		Status: http.StatusNoContent,
 	}, nil
