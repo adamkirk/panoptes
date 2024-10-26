@@ -1,4 +1,4 @@
-module github.com/adamkirk/heimdallr
+module github.com/adamkirk/panoptes
 
 go 1.22.5
 

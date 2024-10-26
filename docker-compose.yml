@@ -14,9 +14,9 @@ services:
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # listen to docker events
-      - "${HEIMDALLR_ETC_TRAEFIK_DIR}/tls/certs/:/certs/" # mount certs
-      - "${HEIMDALLR_ETC_TRAEFIK_DIR}/traefik.yaml:/etc/traefik/traefik.yaml" # mount config
-      - "${HEIMDALLR_ETC_TRAEFIK_DIR}/traefik-dynamic-config.yaml:/traefik-dynamic-config.yaml"
+      - "${PANOPTES_ETC_TRAEFIK_DIR}/tls/certs/:/certs/" # mount certs
+      - "${PANOPTES_ETC_TRAEFIK_DIR}/traefik.yaml:/etc/traefik/traefik.yaml" # mount config
+      - "${PANOPTES_ETC_TRAEFIK_DIR}/traefik-dynamic-config.yaml:/traefik-dynamic-config.yaml"
     labels:
       - "prometheus.port=8082"
 
@@ -31,7 +31,7 @@ services:
       - "--config"
       - "/etc/ngrok.yml"
     volumes:
-      - ${HEIMDALLR_NGROK_CONFIG_FILE_PATH}:/etc/ngrok.yml
+      - ${PANOPTES_NGROK_CONFIG_FILE_PATH}:/etc/ngrok.yml
     ports:
       - 4040:4040
 
@@ -43,27 +43,27 @@ services:
       context: .
       target: dev
     environment:
-      APP_COMMAND: heimdallr
-      AIR_DEBUG: ${HEIMDALLR_AIR_DEBUG}
+      APP_COMMAND: panoptes
+      AIR_DEBUG: ${PANOPTES_AIR_DEBUG}
       # See: https://github.com/testcontainers/testcontainers-go/issues/2477#issuecomment-2417815745
       TESTCONTAINERS_RYUK_DISABLED: true
 
-      HEIMDALLR_DB_EVENT_STORE_POSTGRES_HOST: postgres
-      HEIMDALLR_DB_EVENT_STORE_POSTGRES_DATABASE: ${HEIMDALLR_POSTGRES_DB}
-      HEIMDALLR_DB_EVENT_STORE_POSTGRES_USER: ${HEIMDALLR_POSTGRES_APP_USER}
-      HEIMDALLR_DB_EVENT_STORE_POSTGRES_PASSWORD: ${HEIMDALLR_POSTGRES_APP_PASSWORD}
-      HEIMDALLR_DB_EVENT_STORE_POSTGRES_PORT: ${HEIMDALLR_POSTGRES_HOST_PORT}
-      HEIMDALLR_DB_EVENT_STORE_POSTGRES_SCHEMA: ${HEIMDALLR_POSTGRES_SCHEMA}
+      PANOPTES_DB_EVENT_STORE_POSTGRES_HOST: postgres
+      PANOPTES_DB_EVENT_STORE_POSTGRES_DATABASE: ${PANOPTES_POSTGRES_DB}
+      PANOPTES_DB_EVENT_STORE_POSTGRES_USER: ${PANOPTES_POSTGRES_APP_USER}
+      PANOPTES_DB_EVENT_STORE_POSTGRES_PASSWORD: ${PANOPTES_POSTGRES_APP_PASSWORD}
+      PANOPTES_DB_EVENT_STORE_POSTGRES_PORT: ${PANOPTES_POSTGRES_HOST_PORT}
+      PANOPTES_DB_EVENT_STORE_POSTGRES_SCHEMA: ${PANOPTES_POSTGRES_SCHEMA}
     working_dir: /app
     volumes:
-      - "${HEIMDALLR_DIR}/:/app"
+      - "${PANOPTES_DIR}/:/app"
       # So we can use testcontainers
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
-      - "traefik.http.routers.api.rule=Host(`${HEIMDALLR_HOST}`)"
+      - "traefik.http.routers.api.rule=Host(`${PANOPTES_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.services.api.loadbalancer.server.port=${HEIMDALLR_HTTP_PORT}"
+      - "traefik.http.services.api.loadbalancer.server.port=${PANOPTES_HTTP_PORT}"
       - "traefik.http.routers.api.tls=true"
 
   api-migrate:
@@ -71,22 +71,22 @@ services:
       - manual
     image: migrate/migrate:4
     environment:
-      POSTGRES_URL: postgres://${HEIMDALLR_POSTGRES_MIGRATOR_USER}:${HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD}@postgres:5432/${HEIMDALLR_POSTGRES_DB}?search_path=${HEIMDALLR_POSTGRES_SCHEMA}&sslmode=disable
+      POSTGRES_URL: postgres://${PANOPTES_POSTGRES_MIGRATOR_USER}:${PANOPTES_POSTGRES_MIGRATOR_PASSWORD}@postgres:5432/${PANOPTES_POSTGRES_DB}?search_path=${PANOPTES_POSTGRES_SCHEMA}&sslmode=disable
     volumes:
-      - ${HEIMDALLR_MIGRATIONS_DIR}:/migrations
-      - ${HEIMDALLR_DB_SCRIPTS_DIR}:/scripts
+      - ${PANOPTES_MIGRATIONS_DIR}:/migrations
+      - ${PANOPTES_DB_SCRIPTS_DIR}:/scripts
     entrypoint: /scripts/run.sh
 
   jet:
     profiles:
       - manual
     build:
-      context: ${HEIMDALLR_JET_BUILD_CTX}
+      context: ${PANOPTES_JET_BUILD_CTX}
     working_dir: /app
     environment:
-      POSTGRES_DSN: postgres://${HEIMDALLR_POSTGRES_ROOT_USER}:${HEIMDALLR_POSTGRES_ROOT_PASSWORD}@postgres:5432/${HEIMDALLR_POSTGRES_DB}?search_path=${HEIMDALLR_POSTGRES_SCHEMA}&sslmode=disable
+      POSTGRES_DSN: postgres://${PANOPTES_POSTGRES_ROOT_USER}:${PANOPTES_POSTGRES_ROOT_PASSWORD}@postgres:5432/${PANOPTES_POSTGRES_DB}?search_path=${PANOPTES_POSTGRES_SCHEMA}&sslmode=disable
     volumes:
-      - "${HEIMDALLR_DIR}/:/app"
+      - "${PANOPTES_DIR}/:/app"
     command:
       - -schema=public
       - -path=./internal/repository/postgres/schema
@@ -97,20 +97,20 @@ services:
       - api
     image: postgres:17.0
     ports:
-      - "${HEIMDALLR_POSTGRES_HOST_PORT}:5432"
+      - "${PANOPTES_POSTGRES_HOST_PORT}:5432"
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
-      POSTGRES_PASSWORD: ${HEIMDALLR_POSTGRES_ROOT_PASSWORD}
-      POSTGRES_USER: ${HEIMDALLR_POSTGRES_ROOT_USER}
-      POSTGRES_DB: ${HEIMDALLR_POSTGRES_DB}
-      HEIMDALLR_POSTGRES_SCHEMA: ${HEIMDALLR_POSTGRES_SCHEMA}
-      HEIMDALLR_POSTGRES_APP_USER: ${HEIMDALLR_POSTGRES_APP_USER}
-      HEIMDALLR_POSTGRES_APP_PASSWORD: ${HEIMDALLR_POSTGRES_APP_PASSWORD}
-      HEIMDALLR_POSTGRES_MIGRATOR_USER: ${HEIMDALLR_POSTGRES_MIGRATOR_USER}
-      HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD: ${HEIMDALLR_POSTGRES_MIGRATOR_PASSWORD}
+      POSTGRES_PASSWORD: ${PANOPTES_POSTGRES_ROOT_PASSWORD}
+      POSTGRES_USER: ${PANOPTES_POSTGRES_ROOT_USER}
+      POSTGRES_DB: ${PANOPTES_POSTGRES_DB}
+      PANOPTES_POSTGRES_SCHEMA: ${PANOPTES_POSTGRES_SCHEMA}
+      PANOPTES_POSTGRES_APP_USER: ${PANOPTES_POSTGRES_APP_USER}
+      PANOPTES_POSTGRES_APP_PASSWORD: ${PANOPTES_POSTGRES_APP_PASSWORD}
+      PANOPTES_POSTGRES_MIGRATOR_USER: ${PANOPTES_POSTGRES_MIGRATOR_USER}
+      PANOPTES_POSTGRES_MIGRATOR_PASSWORD: ${PANOPTES_POSTGRES_MIGRATOR_PASSWORD}
     volumes:
       - postgres:/var/lib/postgresql/data
-      - ${HEIMDALLR_POSTGRES_INIT_DIR}:/docker-entrypoint-initdb.d
+      - ${PANOPTES_POSTGRES_INIT_DIR}:/docker-entrypoint-initdb.d
 
   pgadmin:
     # Latest tag is a bit naff, check occasionally for newer versions...
@@ -118,20 +118,20 @@ services:
     profiles:
       - api
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${HEIMDALLR_PGADMIN_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${HEIMDALLR_PGADMIN_PASSWORD}
+      PGADMIN_DEFAULT_EMAIL: ${PANOPTES_PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PANOPTES_PGADMIN_PASSWORD}
       # Disable login and security precautions; useful in dev
       PGADMIN_CONFIG_SERVER_MODE: 'False'
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
       PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY: 'False'
       PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS: "['test']"
     volumes:
-      - "${HEIMDALLR_PGADMIN_SERVERS_FILEPATH}:/pgadmin4/servers.json"
+      - "${PANOPTES_PGADMIN_SERVERS_FILEPATH}:/pgadmin4/servers.json"
     labels:
-      - "traefik.http.routers.pgadmin.rule=Host(`${HEIMDALLR_PGADMIN_HOST}`)"
+      - "traefik.http.routers.pgadmin.rule=Host(`${PANOPTES_PGADMIN_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.pgadmin.entrypoints=websecure"
-      - "traefik.http.services.pgadmin.loadbalancer.server.port=${HEIMDALLR_PGADMIN_PORT}"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=${PANOPTES_PGADMIN_PORT}"
       - "traefik.http.routers.pgadmin.tls=true"
 
 # --- mail --- #
@@ -140,35 +140,35 @@ services:
     restart: always
     command:
       - -w
-      - "${HEIMDALLR_MAILBOX_HTTP_PORT}"
+      - "${PANOPTES_MAILBOX_HTTP_PORT}"
       - -s
-      - ${HEIMDALLR_MAILBOX_SMTP_PORT}
+      - ${PANOPTES_MAILBOX_SMTP_PORT}
       - --ip
       - "0.0.0.0"
       - --incoming-user
-      - ${HEIMDALLR_MAILBOX_USERNAME}
+      - ${PANOPTES_MAILBOX_USERNAME}
       - --incoming-pass
-      - ${HEIMDALLR_MAILBOX_PASSWORD}
+      - ${PANOPTES_MAILBOX_PASSWORD}
     labels:
-      - "traefik.http.routers.mailbox.rule=Host(`${HEIMDALLR_MAILBOX_PUBLIC_HOST}`)"
+      - "traefik.http.routers.mailbox.rule=Host(`${PANOPTES_MAILBOX_PUBLIC_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.mailbox.entrypoints=websecure"
-      - "traefik.http.services.mailbox.loadbalancer.server.port=${HEIMDALLR_MAILBOX_HTTP_PORT}"
+      - "traefik.http.services.mailbox.loadbalancer.server.port=${PANOPTES_MAILBOX_HTTP_PORT}"
       - "traefik.http.routers.mailbox.tls=true"
 
 # --- docs --- #
   mkdocs:
     build:
-      context: ${HEIMDALLR_ETC_MKDOCS}
+      context: ${PANOPTES_ETC_MKDOCS}
     # image: squidfunk/mkdocs-material:latest
     # Doesn't exist for arm
     working_dir: /app
     restart: always
     labels:
-      - "traefik.http.routers.mkdocs.rule=Host(`${HEIMDALLR_MKDOCS_HOST}`)"
+      - "traefik.http.routers.mkdocs.rule=Host(`${PANOPTES_MKDOCS_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.mkdocs.entrypoints=websecure"
-      - "traefik.http.services.mkdocs.loadbalancer.server.port=${HEIMDALLR_MKDOCS_PORT}"
+      - "traefik.http.services.mkdocs.loadbalancer.server.port=${PANOPTES_MKDOCS_PORT}"
       - "traefik.http.routers.mkdocs.tls=true"
     volumes:
       - .:/app
@@ -178,32 +178,32 @@ services:
     profiles:
       - grafana-stack-enabled
     build:
-      context: ${HEIMDALLR_ETC_GRAFANA_STACK}/grafana
+      context: ${PANOPTES_ETC_GRAFANA_STACK}/grafana
       args:
         GRAFANA_VERSION: 10.0.12
     environment:
-      GF_LOG_LEVEL: ${HEIMDALLR_GRAFANA_LOG_LEVEL}
-      GF_ADMIN_USERNAME: ${HEIMDALLR_GRAFANA_ADMIN_USERNAME}
-      GF_ADMIN_PASSWORD: ${HEIMDALLR_GRAFANA_ADMIN_PASSWORD}
-      GF_HTTP_PORT: ${HEIMDALLR_GRAFANA_HTTP_PORT}
-      GF_DOMAIN: ${HEIMDALLR_GRAFANA_HOST}
-      GF_MAIL_HOST: ${HEIMDALLR_MAILBOX_INTERNAL_HOST}
-      GF_MAIL_USER: ${HEIMDALLR_MAILBOX_USERNAME}
-      GF_MAIL_PASSWORD: ${HEIMDALLR_MAILBOX_PASSWORD}
-      GF_LOKI_HOST: ${HEIMDALLR_LOKI_INTERNAL_HOST}
-      GF_LOKI_PORT: ${HEIMDALLR_LOKI_HTTP_PORT}
-      GF_PROVISIONING_PATH: ${HEIMDALLR_GRAFANA_PROVISIONING_PATH}
-      GF_PROMETHEUS_HOST: ${HEIMDALLR_PROMETHEUS_INTERNAL_HOST}
-      GF_PROMETHEUS_HTTP_PORT: ${HEIMDALLR_PROMETHEUS_HTTP_PORT}
+      GF_LOG_LEVEL: ${PANOPTES_GRAFANA_LOG_LEVEL}
+      GF_ADMIN_USERNAME: ${PANOPTES_GRAFANA_ADMIN_USERNAME}
+      GF_ADMIN_PASSWORD: ${PANOPTES_GRAFANA_ADMIN_PASSWORD}
+      GF_HTTP_PORT: ${PANOPTES_GRAFANA_HTTP_PORT}
+      GF_DOMAIN: ${PANOPTES_GRAFANA_HOST}
+      GF_MAIL_HOST: ${PANOPTES_MAILBOX_INTERNAL_HOST}
+      GF_MAIL_USER: ${PANOPTES_MAILBOX_USERNAME}
+      GF_MAIL_PASSWORD: ${PANOPTES_MAILBOX_PASSWORD}
+      GF_LOKI_HOST: ${PANOPTES_LOKI_INTERNAL_HOST}
+      GF_LOKI_PORT: ${PANOPTES_LOKI_HTTP_PORT}
+      GF_PROVISIONING_PATH: ${PANOPTES_GRAFANA_PROVISIONING_PATH}
+      GF_PROMETHEUS_HOST: ${PANOPTES_PROMETHEUS_INTERNAL_HOST}
+      GF_PROMETHEUS_HTTP_PORT: ${PANOPTES_PROMETHEUS_HTTP_PORT}
     volumes:
-      - '${HEIMDALLR_STORAGE_DIR}/grafana:/var/lib/grafana'
-      - '${HEIMDALLR_ETC_GRAFANA_STACK}/grafana/conf/defaults.ini:/usr/share/grafana/conf/defaults.ini'
-      - '${HEIMDALLR_ETC_GRAFANA_STACK}/grafana/provisioning:${HEIMDALLR_GRAFANA_PROVISIONING_PATH}'
+      - '${PANOPTES_STORAGE_DIR}/grafana:/var/lib/grafana'
+      - '${PANOPTES_ETC_GRAFANA_STACK}/grafana/conf/defaults.ini:/usr/share/grafana/conf/defaults.ini'
+      - '${PANOPTES_ETC_GRAFANA_STACK}/grafana/provisioning:${PANOPTES_GRAFANA_PROVISIONING_PATH}'
     labels:
-      - "traefik.http.routers.grafana.rule=Host(`${HEIMDALLR_GRAFANA_HOST}`)"
+      - "traefik.http.routers.grafana.rule=Host(`${PANOPTES_GRAFANA_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.services.grafana.loadbalancer.server.port=${HEIMDALLR_GRAFANA_HTTP_PORT}"
+      - "traefik.http.services.grafana.loadbalancer.server.port=${PANOPTES_GRAFANA_HTTP_PORT}"
       - "traefik.http.routers.grafana.tls=true"
 
   loki:
@@ -212,17 +212,17 @@ services:
     image: grafana/loki:2.9.2
     command: 
       - -config.expand-env=true
-      - -config.file=${HEIMDALLR_LOKI_CONFIG_PATH}
+      - -config.file=${PANOPTES_LOKI_CONFIG_PATH}
     environment:
-      LOKI_HTTP_PORT: ${HEIMDALLR_LOKI_HTTP_PORT}
+      LOKI_HTTP_PORT: ${PANOPTES_LOKI_HTTP_PORT}
     volumes:
-      - '${HEIMDALLR_ETC_GRAFANA_STACK}/loki/conf/config.yaml:${HEIMDALLR_LOKI_CONFIG_PATH}'
-      - '${HEIMDALLR_STORAGE_DIR}/loki:/tmp/loki'
+      - '${PANOPTES_ETC_GRAFANA_STACK}/loki/conf/config.yaml:${PANOPTES_LOKI_CONFIG_PATH}'
+      - '${PANOPTES_STORAGE_DIR}/loki:/tmp/loki'
     labels:
-      - "traefik.http.routers.loki.rule=Host(`${HEIMDALLR_LOKI_HOST}`)"
+      - "traefik.http.routers.loki.rule=Host(`${PANOPTES_LOKI_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.loki.entrypoints=websecure"
-      - "traefik.http.services.loki.loadbalancer.server.port=${HEIMDALLR_LOKI_HTTP_PORT}"
+      - "traefik.http.services.loki.loadbalancer.server.port=${PANOPTES_LOKI_HTTP_PORT}"
       - "traefik.http.routers.loki.tls=true"
 
   promtail:
@@ -230,19 +230,19 @@ services:
       - grafana-stack-enabled
     image: grafana/promtail:2.9.2
     environment:
-      PROMTAIL_HTTP_PORT: ${HEIMDALLR_PROMTAIL_HTTP_PORT}
-      PROMTAIL_LOKI_HOST: ${HEIMDALLR_LOKI_INTERNAL_HOST}
-      PROMTAIL_LOKI_PORT: ${HEIMDALLR_LOKI_HTTP_PORT}
+      PROMTAIL_HTTP_PORT: ${PANOPTES_PROMTAIL_HTTP_PORT}
+      PROMTAIL_LOKI_HOST: ${PANOPTES_LOKI_INTERNAL_HOST}
+      PROMTAIL_LOKI_PORT: ${PANOPTES_LOKI_HTTP_PORT}
     volumes:
-      - '${HEIMDALLR_ETC_GRAFANA_STACK}/promtail/conf/config.yaml:${HEIMDALLR_PROMTAIL_CONFIG_PATH}'
-      - '${HEIMDALLR_STORAGE_DIR}/promtail:/tmp/promtail'
+      - '${PANOPTES_ETC_GRAFANA_STACK}/promtail/conf/config.yaml:${PANOPTES_PROMTAIL_CONFIG_PATH}'
+      - '${PANOPTES_STORAGE_DIR}/promtail:/tmp/promtail'
       # Allows us to pull logs from docker
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       # - /var/log:/var/log
     command: 
       - -config.expand-env=true
-      - -config.file=${HEIMDALLR_PROMTAIL_CONFIG_PATH}
+      - -config.file=${PANOPTES_PROMTAIL_CONFIG_PATH}
 
   prometheus:
     profiles:
@@ -252,14 +252,14 @@ services:
     # Not ideal, but this is only dev.
     user: root
     volumes:
-      - '${HEIMDALLR_ETC_GRAFANA_STACK}/prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml'
-      - '${HEIMDALLR_STORAGE_DIR}/prometheus:/prometheus'
+      - '${PANOPTES_ETC_GRAFANA_STACK}/prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml'
+      - '${PANOPTES_STORAGE_DIR}/prometheus:/prometheus'
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # listen to docker events
     labels:
-      - "traefik.http.routers.prometheus.rule=Host(`${HEIMDALLR_PROMETHEUS_HOST}`)"
+      - "traefik.http.routers.prometheus.rule=Host(`${PANOPTES_PROMETHEUS_HOST}`)"
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=${HEIMDALLR_PROMETHEUS_HTTP_PORT}"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=${PANOPTES_PROMETHEUS_HTTP_PORT}"
       - "traefik.http.routers.prometheus.tls=true"
 
 # --- tls --- #
@@ -270,4 +270,4 @@ services:
       context: ./etc/tls/minica
     working_dir: /srv
     volumes:
-      - "${HEIMDALLR_MINICA_CERTS_DIR}:/srv"
+      - "${PANOPTES_MINICA_CERTS_DIR}:/srv"

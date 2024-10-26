@@ -22,7 +22,7 @@ const config: Config = {
       enabled: true,
       opts: {
         use: {
-          baseURL: "http://heimdallr.test",
+          baseURL: "http://panoptes.test",
           ignoreHTTPSErrors: true,
           extraHTTPHeaders: {
             'Accept': 'application/json',

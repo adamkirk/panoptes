@@ -9,7 +9,7 @@ DOCKER_PROFILES_EXAMPLE_FILE="$ROOTDIR/.dockerprofiles.example"
 MINICA_CERTS_DIR=$ROOTDIR/etc/tls/certs
 TRAEFIK_CERTS_DIR=$ROOTDIR/etc/traefik/tls/certs
 
-DC="docker compose -p heimdallr -f ./docker-compose.yml --env-file $ROOTDIR/.dockerenv"
+DC="docker compose -p panoptes -f ./docker-compose.yml --env-file $ROOTDIR/.dockerenv"
 
 # See: https://www.shellhacks.com/bash-colors/
 RED='\033[0;31m'
@@ -69,7 +69,7 @@ function __successlns() {
 function __show_help() {
 	__infolns "./dev" \
 		"" \
-		"Helper script for working with the heimdallr app"
+		"Helper script for working with the panoptes app"
 	__sepln
 	__infolns "Commands"
 	__newln
@@ -144,23 +144,23 @@ function __tls_setup() {
 		mkdir $MINICA_CERTS_DIR
 	fi
 
-	if [ ! -d "$MINICA_CERTS_DIR/heimdallr.test" ]; then
-		$DC run minica minica --domains 'heimdallr.test'
+	if [ ! -d "$MINICA_CERTS_DIR/panoptes.test" ]; then
+		$DC run minica minica --domains 'panoptes.test'
 	else
-		__infolns "Not generating heimdallr.test as it's already present!"
+		__infolns "Not generating panoptes.test as it's already present!"
 	fi
 
-	if [ ! -d $MINICA_CERTS_DIR/_.heimdallr.test ]; then
-		$DC run minica minica --domains '*.heimdallr.test'
+	if [ ! -d $MINICA_CERTS_DIR/_.panoptes.test ]; then
+		$DC run minica minica --domains '*.panoptes.test'
 	else
-		__infolns "Not generating *.heimdallr.test as it's already present!"
+		__infolns "Not generating *.panoptes.test as it's already present!"
 	fi
 
 	rm -rf $TRAEFIK_CERTS_DIR/*
-	cp $MINICA_CERTS_DIR/_.heimdallr.test/cert.pem $TRAEFIK_CERTS_DIR/_.heimdallr.test.cert
-	cp $MINICA_CERTS_DIR/_.heimdallr.test/key.pem $TRAEFIK_CERTS_DIR/_.heimdallr.test.key
-	cp $MINICA_CERTS_DIR/heimdallr.test/cert.pem $TRAEFIK_CERTS_DIR/heimdallr.test.cert
-	cp $MINICA_CERTS_DIR/heimdallr.test/key.pem $TRAEFIK_CERTS_DIR/heimdallr.test.key
+	cp $MINICA_CERTS_DIR/_.panoptes.test/cert.pem $TRAEFIK_CERTS_DIR/_.panoptes.test.cert
+	cp $MINICA_CERTS_DIR/_.panoptes.test/key.pem $TRAEFIK_CERTS_DIR/_.panoptes.test.key
+	cp $MINICA_CERTS_DIR/panoptes.test/cert.pem $TRAEFIK_CERTS_DIR/panoptes.test.cert
+	cp $MINICA_CERTS_DIR/panoptes.test/key.pem $TRAEFIK_CERTS_DIR/panoptes.test.key
 }
 
 function __tls() {
@@ -200,13 +200,13 @@ function __dc() {
 # TODO: find a way to pull all these hosts from traefik api
 # Very do-able but fiddly, especially with just bash
 function __hosts() {
-	echo "127.0.0.1 mailbox.heimdallr.test"
-	echo "127.0.0.1 mkdocs.heimdallr.test"
-	echo "127.0.0.1 grafana.heimdallr.test"
-	echo "127.0.0.1 loki.heimdallr.test"
-	echo "127.0.0.1 prometheus.heimdallr.test"
-	echo "127.0.0.1 heimdallr.test"
-	echo "127.0.0.1 pgadmin.heimdallr.test"
+	echo "127.0.0.1 mailbox.panoptes.test"
+	echo "127.0.0.1 mkdocs.panoptes.test"
+	echo "127.0.0.1 grafana.panoptes.test"
+	echo "127.0.0.1 loki.panoptes.test"
+	echo "127.0.0.1 prometheus.panoptes.test"
+	echo "127.0.0.1 panoptes.test"
+	echo "127.0.0.1 pgadmin.panoptes.test"
 }
 
 function __up() {

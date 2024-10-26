@@ -1,2 +1,2 @@
-# Heimdallr
+# Panoptes
 ...

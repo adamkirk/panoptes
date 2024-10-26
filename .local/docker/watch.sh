@@ -12,4 +12,4 @@ if [ "$AIR_DEBUG" == "true" ]; then
     DEBUG_OPT="-d"
 fi
 
-air $DEBUG_OPT -build.bin ./build/heimdallr -build.cmd "./hack/build.sh"
+air $DEBUG_OPT -build.bin ./build/panoptes -build.cmd "./hack/build.sh"

@@ -2,8 +2,8 @@ tls:
   domains:
   certificates:
 
-    - certFile: /certs/heimdallr.test.cert
-      keyFile: /certs/heimdallr.test.key
+    - certFile: /certs/panoptes.test.cert
+      keyFile: /certs/panoptes.test.key
 
-    - certFile: /certs/_.heimdallr.test.cert
-      keyFile: /certs/_.heimdallr.test.key
+    - certFile: /certs/_.panoptes.test.cert
+      keyFile: /certs/_.panoptes.test.key

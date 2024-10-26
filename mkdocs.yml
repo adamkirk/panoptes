@@ -1,6 +1,6 @@
-site_name: heimdallr
-repo_url: https://github.com/adamkirk/heimdallr
-repo_name: adamkirk/heimdallr@github
+site_name: panoptes
+repo_url: https://github.com/adamkirk/panoptes
+repo_name: adamkirk/panoptes@github
 docs_dir: ./docs
 theme:
   name: material

@@ -17,9 +17,9 @@ db:
     postgres:
       host: "postgres"
       password: "iampostgres"
-      user: "heimdallr-app"
+      user: "panoptes-app"
       port: 5432
-      database: "heimdallr"
+      database: "panoptes"
       schema: "public"
 
   projection:

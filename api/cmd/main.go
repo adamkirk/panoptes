@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
-	apicmd "github.com/adamkirk/heimdallr/cmd/api"
-	"github.com/adamkirk/heimdallr/internal/api"
-	v1 "github.com/adamkirk/heimdallr/internal/api/v1"
-	"github.com/adamkirk/heimdallr/internal/config"
-	"github.com/adamkirk/heimdallr/internal/domain/ingestion"
-	"github.com/adamkirk/heimdallr/internal/repository/postgres"
+	apicmd "github.com/adamkirk/panoptes/cmd/api"
+	"github.com/adamkirk/panoptes/internal/api"
+	v1 "github.com/adamkirk/panoptes/internal/api/v1"
+	"github.com/adamkirk/panoptes/internal/config"
+	"github.com/adamkirk/panoptes/internal/domain/ingestion"
+	"github.com/adamkirk/panoptes/internal/repository/postgres"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,7 +23,7 @@ var appCfg *config.Config
 
 var rootCmd = &cobra.Command{
 	Use:   "",
-	Short: "Heimdallr Organisations API service",
+	Short: "Panoptes Organisations API service",
 	Long:  `Generates metrics about development processes by combining info from task management and VCS services.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
@@ -154,7 +154,7 @@ func bootstrap() {
 	// e.g. logging.level becomes LOGGING_LEVEL
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	viper.SetEnvPrefix("heimdallr")
+	viper.SetEnvPrefix("panoptes")
 	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/adamkirk/heimdallr/internal/repository/postgres/schema/heimdallr/public/table"
+	"github.com/adamkirk/panoptes/internal/repository/postgres/schema/panoptes/public/table"
 	"github.com/google/uuid"
 )
 

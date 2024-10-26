@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/adamkirk/heimdallr/internal/api"
+	"github.com/adamkirk/panoptes/internal/api"
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
 )

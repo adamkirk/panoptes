@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/adamkirk/heimdallr/internal/api/operations"
-	"github.com/adamkirk/heimdallr/internal/api/v1/responses"
-	"github.com/adamkirk/heimdallr/internal/domain/ingestion"
+	"github.com/adamkirk/panoptes/internal/api/operations"
+	"github.com/adamkirk/panoptes/internal/api/v1/responses"
+	"github.com/adamkirk/panoptes/internal/domain/ingestion"
 	"github.com/danielgtaylor/huma/v2"
 )
 

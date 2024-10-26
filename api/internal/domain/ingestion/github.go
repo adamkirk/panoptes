@@ -3,7 +3,7 @@ package ingestion
 import (
 	"time"
 
-	"github.com/adamkirk/heimdallr/internal/util/dt"
+	"github.com/adamkirk/panoptes/internal/util/dt"
 	"github.com/google/uuid"
 )
 

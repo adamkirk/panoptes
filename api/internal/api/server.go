@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/adamkirk/heimdallr/internal/api/operations"
+	"github.com/adamkirk/panoptes/internal/api/operations"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humaecho"
 	"github.com/labstack/echo/v4"
@@ -147,7 +147,7 @@ func NewServer(v1Api *V1Api, cfg ApiServerConfig) *Server {
 	
 	apiBase := fmt.Sprintf("/api/%s", v1Api.Version())
 	api := e.Group(apiBase)
-	apiCfg := huma.DefaultConfig("Heimdallr", v1Api.Version())
+	apiCfg := huma.DefaultConfig("Panoptes", v1Api.Version())
 	hg := humaecho.NewWithGroup(e, api, apiCfg)
 	hg.OpenAPI().OnAddOperation = append(hg.OpenAPI().OnAddOperation, ConfigureDefaultResponses)
 	// Needed to get the docs displaying properly.
