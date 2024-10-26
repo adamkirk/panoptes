@@ -20,12 +20,12 @@ Mostly just meta so we can see where things are coming from and couples with sou
 Hate polymorhpism in a database usually, but it makes sense here, as it shouldn''t be heavily used';
 
 
-CREATE INDEX IF NOT EXISTS "aggregate_id_idx" ON "change_requests_stream" ("aggregate_id");
-CREATE INDEX IF NOT EXISTS "occurred_at_idx" ON "change_requests_stream" ("occurred_at");
-CREATE INDEX IF NOT EXISTS "type_idx" ON "change_requests_stream" ("type");
+CREATE INDEX IF NOT EXISTS "change_requests_stream_aggregate_id_idx" ON "change_requests_stream" ("aggregate_id");
+CREATE INDEX IF NOT EXISTS "change_requests_stream_occurred_at_idx" ON "change_requests_stream" ("occurred_at");
+CREATE INDEX IF NOT EXISTS "change_requests_stream_type_idx" ON "change_requests_stream" ("type");
 
-CREATE INDEX IF NOT EXISTS  "source_relation_idx" ON "change_requests_stream" ("source_id", "source_integration");
-COMMENT ON INDEX "source_relation_idx" IS 'source_id first, as it should have much higher cardinality.';
+CREATE INDEX IF NOT EXISTS "change_requests_stream_source_relation_idx" ON "change_requests_stream" ("source_id", "source_integration");
+COMMENT ON INDEX "change_requests_stream_source_relation_idx" IS 'source_id first, as it should have much higher cardinality.';
 
-CREATE INDEX IF NOT EXISTS  "type_idx" ON "change_requests_stream" ("aggregate_id", "type");
-COMMENT ON INDEX "type_idx" IS 'aggregate_id first, as it should have much higher cardinality';
+CREATE INDEX IF NOT EXISTS "change_requests_stream_type_idx" ON "change_requests_stream" ("aggregate_id", "type");
+COMMENT ON INDEX "change_requests_stream_type_idx" IS 'aggregate_id first, as it should have much higher cardinality';

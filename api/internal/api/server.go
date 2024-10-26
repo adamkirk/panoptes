@@ -35,6 +35,8 @@ type ApiServerConfig interface {
 	ApiServerAccessLogEnabled() bool
 	ApiServerAccessLogFormat() string
 	ApiServerDebugErrorsEnabled() bool
+
+	AuthMasterToken() string
 }
 
 type Server struct {
@@ -133,7 +135,7 @@ func ConfigureDefaultResponses(api *huma.OpenAPI, op *huma.Operation) {
 	}
 }
 
-func NewServer(v1Api *V1Api, cfg ApiServerConfig) *Server {
+func NewServer(v1Api *V1Api, cfg ApiServerConfig, authRepo AuthRepo, verifier TokenVerifier) *Server {
 	e := echo.New()
 	
 	e.HideBanner = true
@@ -149,6 +151,8 @@ func NewServer(v1Api *V1Api, cfg ApiServerConfig) *Server {
 	api := e.Group(apiBase)
 	apiCfg := huma.DefaultConfig("Panoptes", v1Api.Version())
 	hg := humaecho.NewWithGroup(e, api, apiCfg)
+	hg.UseMiddleware(NewAuthMiddleware(hg, authRepo, verifier))
+
 	hg.OpenAPI().OnAddOperation = append(hg.OpenAPI().OnAddOperation, ConfigureDefaultResponses)
 	// Needed to get the docs displaying properly.
 	apiCfg.OpenAPI.Servers = []*huma.Server{

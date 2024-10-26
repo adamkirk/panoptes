@@ -10,6 +10,17 @@ api:
       format: json
       enabled: true
 
+
+auth:
+  # Temporary to get some basic auth in
+  master_token: "****"
+  bcrypt:
+    # High costs can result in pretty slow API requests
+    # It will be used on every API request, so needs to be a balance between 
+    # security and performance.
+    # 12 is probably a minimum
+    cost: 12
+
 db:
   event_store:
     driver: postgres

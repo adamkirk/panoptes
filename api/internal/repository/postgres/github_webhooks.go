@@ -1,8 +1,6 @@
 package postgres
 
 import (
-	// dot import so go code would resemble as much as native SQL
-	// dot import is not mandatory
 	"encoding/json"
 	"time"
 

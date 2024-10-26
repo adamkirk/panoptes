@@ -7,11 +7,16 @@ import (
 	"strings"
 
 	apicmd "github.com/adamkirk/panoptes/cmd/api"
+	superuserscreate "github.com/adamkirk/panoptes/cmd/superusers_create"
+	tokensgenerate "github.com/adamkirk/panoptes/cmd/tokens_generate"
 	"github.com/adamkirk/panoptes/internal/api"
 	v1 "github.com/adamkirk/panoptes/internal/api/v1"
 	"github.com/adamkirk/panoptes/internal/config"
 	"github.com/adamkirk/panoptes/internal/domain/ingestion"
+	"github.com/adamkirk/panoptes/internal/domain/users"
+	"github.com/adamkirk/panoptes/internal/domain/validation"
 	"github.com/adamkirk/panoptes/internal/repository/postgres"
+	"github.com/adamkirk/panoptes/internal/util/encryption"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,7 +28,7 @@ var appCfg *config.Config
 
 var rootCmd = &cobra.Command{
 	Use:   "",
-	Short: "Panoptes Organisations API service",
+	Short: "Panoptes",
 	Long:  `Generates metrics about development processes by combining info from task management and VCS services.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
@@ -33,9 +38,40 @@ var rootCmd = &cobra.Command{
 var apiServeCmd = &cobra.Command{
 	Use:   "api",
 	Short: "Start the API server",
-	Long:  `Blah`,
 	Run: func(cmd *cobra.Command, args []string) {
 		apicmd.Handler(SharedOpts(appCfg), cmd, args)
+	},
+}
+
+var superusersCmd = &cobra.Command{
+	Use:   "superusers",
+	Short: "Commands for managing super users.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	},
+}
+
+var superusersCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Commands for creating super users.",
+	Run: func(cmd *cobra.Command, args []string) {
+		superuserscreate.Handler(SharedOpts(appCfg), cmd, args)
+	},
+}
+
+var tokensCmd = &cobra.Command{
+	Use:   "tokens",
+	Short: "Commands for managing access tokens.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	},
+}
+
+var tokensGenerateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generates an access token",
+	Run: func(cmd *cobra.Command, args []string) {
+		tokensgenerate.Handler(SharedOpts(appCfg), cmd, args)
 	},
 }
 
@@ -73,6 +109,13 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 				fx.ResultTags(`group:"api.v1.controllers"`),
 			),
 		),
+		fx.Provide(
+			fx.Annotate(
+				v1.NewUsersController,
+				fx.As(new(api.Controller)),
+				fx.ResultTags(`group:"api.v1.controllers"`),
+			),
+		),
 
 		fx.Provide(
 			fx.Annotate(
@@ -80,6 +123,33 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 				fx.As(new(v1.GithubIngestor)),
 			),
 		),
+
+		fx.Provide(
+			fx.Annotate(
+				func (* config.Config) *encryption.Bcrypter {
+					return encryption.NewBcrypter(encryption.WithCost(cfg.Auth.Bcrypt.Cost))
+				},
+				fx.As(new(users.Encrypter)),
+				fx.As(new(api.TokenVerifier)),
+			),
+		),
+
+		fx.Provide(
+			fx.Annotate(
+				users.NewAccessTokensService,
+				fx.As(new(tokensgenerate.TokensService)),
+			),
+		),
+
+		fx.Provide(
+			fx.Annotate(
+				users.NewUsersService,
+				fx.As(new(superuserscreate.UsersService)),
+				fx.As(new(v1.UsersService)),
+			),
+		),
+
+		fx.Provide(validation.NewValidator),
 	}
 
 	if !cfg.EventStoreDbDriver().IsKnown() {
@@ -99,6 +169,25 @@ func SharedOpts(cfg *config.Config) []fx.Option {
 				fx.Annotate(
 					postgres.NewGithubWebhooksRepository,
 					fx.As(new(ingestion.GithubIngestorRepo)),
+				),
+			),
+			fx.Provide(
+				fx.Annotate(
+					postgres.NewUsersRepository,
+					fx.As(new(users.UsersRepo)),
+				),
+			),
+			fx.Provide(
+				fx.Annotate(
+					postgres.NewRolesRepository,
+					fx.As(new(users.RolesRepo)),
+				),
+			),
+			fx.Provide(
+				fx.Annotate(
+					postgres.NewUserAccessTokensRepository,
+					fx.As(new(users.AccessTokensRepo)),
+					fx.As(new(api.AuthRepo)),
 				),
 			),
 		}...)
@@ -129,7 +218,24 @@ func init() {
 	rootCmd.PersistentFlags().String("log-format", "json", "log format to use")
 	rootCmd.PersistentFlags().Int("port", 8080, "port to serve API on")
 
+	tokensGenerateCmd.Flags().StringP("user", "u", "", "The ID of the user the token belongs to. The token will have the same permissions as the given user.")
+	tokensGenerateCmd.Flags().Int("expire", 6*30, "Days that the token to be valid for. -1 makes it valid forever.")
+
+	superusersCreateCmd.Flags().StringP("email", "e", "", "Users email address")
+	superusersCreateCmd.Flags().StringP("first-name", "f", "", "Users first name")
+	superusersCreateCmd.Flags().StringP("last-name", "l", "", "Users last name")
+	superusersCreateCmd.Flags().StringP("password", "p", "", "Users password")
+	superusersCreateCmd.MarkFlagRequired("email")
+	superusersCreateCmd.MarkFlagRequired("first-name")
+	superusersCreateCmd.MarkFlagRequired("last-name")
+	superusersCreateCmd.MarkFlagRequired("password")
+
 	rootCmd.AddCommand(apiServeCmd)
+	rootCmd.AddCommand(tokensCmd)
+	tokensCmd.AddCommand(tokensGenerateCmd)
+
+	rootCmd.AddCommand(superusersCmd)
+	superusersCmd.AddCommand(superusersCreateCmd)
 
 	viper.BindPFlag("logging.level", rootCmd.PersistentFlags().Lookup("log-level"))
 	viper.BindPFlag("logging.format", rootCmd.PersistentFlags().Lookup("log-format"))
@@ -183,7 +289,6 @@ func bootstrap() {
 
 	logger = logger.With(slog.String("log_type", "app"))
 	slog.SetDefault(logger)
-	// fmt.Println("Using config file:", viper.ConfigFileUsed())
 }
 
 func main() {

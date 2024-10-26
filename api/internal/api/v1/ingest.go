@@ -34,6 +34,9 @@ func (c *IngestionController) RegisterRoutes(api huma.API) {
 		Metadata: map[string]any{
 			operations.OptDisableNotFound: true,
 		},
+		Security: []map[string][]string{
+			{"scopes": {"ingest.github"}},
+		},
 	}, ErrorHandler(true, c.IngestGithubWebhook))
 }
 

@@ -124,7 +124,17 @@ type ConfigDb struct {
 	Projection ConfigDbProjection
 }
 
+type ConfigAuth struct {
+	MasterToken string `mapstructure:"master_token"`
+	Bcrypt ConfigAuthBcrypt
+}
+
+type ConfigAuthBcrypt struct {
+	Cost int
+}
+
 type Config struct {
+	Auth ConfigAuth
 	Logging        ConfigLogging
 	Api            ConfigApi
 	Db             ConfigDb
@@ -162,6 +172,10 @@ func (c *Config) ProjectionDbDriver() ProjectionDbDriver {
 	return c.Db.Projection.Driver
 }
 
+func (c *Config) AuthMasterToken() string {
+	return c.Auth.MasterToken
+}
+
 func NewDefault() *Config {
 	return &Config{
 		Logging: ConfigLogging{
@@ -176,6 +190,11 @@ func NewDefault() *Config {
 					Enabled: true,
 					Format:  "json",
 				},
+			},
+		},
+		Auth: ConfigAuth{
+			Bcrypt: ConfigAuthBcrypt{
+				Cost: 12,
 			},
 		},
 		Db: ConfigDb{

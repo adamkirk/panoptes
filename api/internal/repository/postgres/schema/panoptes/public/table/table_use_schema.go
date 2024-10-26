@@ -12,5 +12,11 @@ package table
 func UseSchema(schema string) {
 	ChangeRequestsStream = ChangeRequestsStream.FromSchema(schema)
 	GithubWebhooks = GithubWebhooks.FromSchema(schema)
+	Permissions = Permissions.FromSchema(schema)
+	Roles = Roles.FromSchema(schema)
+	RolesPermissions = RolesPermissions.FromSchema(schema)
 	SchemaMigrations = SchemaMigrations.FromSchema(schema)
+	UserAccessTokens = UserAccessTokens.FromSchema(schema)
+	UserRoles = UserRoles.FromSchema(schema)
+	Users = Users.FromSchema(schema)
 }
